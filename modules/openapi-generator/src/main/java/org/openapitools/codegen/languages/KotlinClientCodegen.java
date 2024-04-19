@@ -18,14 +18,13 @@
 package org.openapitools.codegen.languages;
 
 import java.io.File;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.servers.Server;
 import org.apache.commons.lang3.StringUtils;
 import org.openapitools.codegen.CliOption;
 import org.openapitools.codegen.CodegenConstants;
@@ -51,6 +50,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Collections.sort;
+import static org.openapitools.codegen.CodegenConstants.API_NAME;
+import static org.openapitools.codegen.utils.StringUtils.camelize;
 
 public class KotlinClientCodegen extends AbstractKotlinCodegen {
 
@@ -67,6 +68,7 @@ public class KotlinClientCodegen extends AbstractKotlinCodegen {
     protected static final String JVM_SPRING = "jvm-spring";
     protected static final String JVM_SPRING_WEBCLIENT = "jvm-spring-webclient";
     protected static final String JVM_SPRING_RESTCLIENT = "jvm-spring-restclient";
+    protected static final String TSM = "tsm";
 
     public static final String USE_RX_JAVA3 = "useRxJava3";
     public static final String USE_COROUTINES = "useCoroutines";
@@ -105,8 +107,8 @@ public class KotlinClientCodegen extends AbstractKotlinCodegen {
 
     protected String authFolder;
 
-    protected SERIALIZATION_LIBRARY_TYPE serializationLibrary = SERIALIZATION_LIBRARY_TYPE.moshi;
-    public static final String SERIALIZATION_LIBRARY_DESC = "What serialization library to use: 'moshi' (default), or 'gson' or 'jackson' or 'kotlinx_serialization'";
+    protected SERIALIZATION_LIBRARY_TYPE serializationLibrary = SERIALIZATION_LIBRARY_TYPE.jackson;
+    public static final String SERIALIZATION_LIBRARY_DESC = "What serialization library to use: 'jackson' (default), or 'gson' or 'jackson' or 'kotlinx_serialization'";
     public enum SERIALIZATION_LIBRARY_TYPE {moshi, gson, jackson, kotlinx_serialization}
 
     public enum DateLibrary {
@@ -228,6 +230,8 @@ public class KotlinClientCodegen extends AbstractKotlinCodegen {
         supportedLibraries.put(MULTIPLATFORM, "Platform: Kotlin multiplatform. HTTP client: Ktor 1.6.7. JSON processing: Kotlinx Serialization: 1.2.1.");
         supportedLibraries.put(JVM_VOLLEY, "Platform: JVM for Android. HTTP client: Volley 1.2.1. JSON processing: gson 2.8.9");
         supportedLibraries.put(JVM_VERTX, "Platform: Java Virtual Machine. HTTP client: Vert.x Web Client. JSON processing: Moshi, Gson or Jackson.");
+
+        supportedLibraries.put(TSM, "Platform: Java Virtual Machine. HTTP: Spring 6 RestClient. JSON processing: Jackson.");
 
         CliOption libraryOption = new CliOption(CodegenConstants.LIBRARY, "Library template (sub-template) to use");
         libraryOption.setEnum(supportedLibraries);
@@ -443,7 +447,8 @@ public class KotlinClientCodegen extends AbstractKotlinCodegen {
             additionalProperties.put(this.serializationLibrary.name(), true);
         }
 
-        commonSupportingFiles();
+        //commonSupportingFiles();
+        commonSupportingFilesMaven();
 
         switch (getLibrary()) {
             case JVM_KTOR:
@@ -463,6 +468,9 @@ public class KotlinClientCodegen extends AbstractKotlinCodegen {
                 break;
             case JVM_SPRING_RESTCLIENT:
                 processJvmSpringRestClientLibrary(infrastructureFolder);
+                break;
+            case TSM:
+                processTsmRestClientLibrary(infrastructureFolder);
                 break;
             case MULTIPLATFORM:
                 processMultiplatformLibrary(infrastructureFolder);
@@ -775,6 +783,45 @@ public class KotlinClientCodegen extends AbstractKotlinCodegen {
         additionalProperties.put(JVM_SPRING_RESTCLIENT, true);
     }
 
+    private void processTsmRestClientLibrary(final String infrastructureFolder) {
+        // we support jackson only
+        setSerializationLibrary(SERIALIZATION_LIBRARY_TYPE.jackson.name());
+
+        // ommit infrastructure folders
+        // commonJvmMultiplatformSupportingFiles(infrastructureFolder);
+
+        // only jackson serializer is required
+        //addSupportingSerializerAdapters(infrastructureFolder);
+
+        // set the defaults for tSM
+        additionalProperties.put(USE_SPRING_BOOT3, true);
+        additionalProperties.put(IDEA, true);
+        additionalProperties.put(JVM_SPRING, true);
+        additionalProperties.put(JVM, true);
+        additionalProperties.put(TSM, true);
+
+        String configurationFilename = "ApiConfiguration.kt";
+
+        // use api name
+        if (additionalProperties.containsKey(API_NAME)) {
+            String apiName = additionalProperties.getOrDefault(API_NAME, "").toString();
+
+            if (getApiNamePrefix().isEmpty()) {
+                additionalProperties.put("apiNamePrefix", camelize(apiName));
+                setApiNamePrefix(camelize(apiName));
+            }
+
+            configurationFilename = getApiNamePrefix() + configurationFilename.replaceFirst("Api", "");
+        }
+
+        // maven pom
+        String basePackage = (sourceFolder + File.separator + packageName).replace(".", "/");
+        supportingFiles.add(new SupportingFile("infrastructure/ApiConfiguration.kt.mustache", basePackage, configurationFilename));
+
+        // too large yaml files - e.g. Netbox API
+        System.setProperty("maxYamlCodePoints", "99999999");
+    }
+
     private void processMultiplatformLibrary(final String infrastructureFolder) {
         commonJvmMultiplatformSupportingFiles(infrastructureFolder);
         additionalProperties.put(MULTIPLATFORM, true);
@@ -863,7 +910,36 @@ public class KotlinClientCodegen extends AbstractKotlinCodegen {
         }
     }
 
+    private void commonSupportingFilesMaven() {
+        supportingFiles.add(new SupportingFile("README.mustache", "", "README.md"));
+        supportingFiles.add(new SupportingFile("pom.xml.mustache", "", "pom.xml"));
+    }
+
     @Override
+    public CodegenOperation fromOperation(String path, String httpMethod, Operation operation, List<Server> servers) {
+        CodegenOperation op = super.fromOperation(path, httpMethod, operation, servers);
+        List<CodegenParameter> queryParams = op.allParams.stream().filter(p -> p.isQueryParam).collect(Collectors.toList());
+
+        // if there are more than 5 query parameters, we will pass them as a object.
+        // It is not manageble to call too many params from command line
+        if (queryParams.size() > 5) {
+            op.queryParams = new ArrayList<>();
+            op.allParams.removeAll(queryParams);
+            CodegenParameter objectQueryParam = new CodegenParameter();
+            objectQueryParam.baseName = "queryParams";
+            objectQueryParam.paramName = "queryParams";
+            objectQueryParam.description = "Consult the target API documentation for available query parameters";
+            objectQueryParam.dataType = "Map<String, Any?>"; // TODO create an typed object
+            objectQueryParam.isQueryParam = true;
+            op.allParams.add(objectQueryParam);
+            op.queryParams.add(objectQueryParam);
+            op.vendorExtensions.put("x-query-params-as-object", true);
+        }
+
+        return op;
+    }
+
+        @Override
     public ModelsMap postProcessModels(ModelsMap objs) {
         ModelsMap objects = super.postProcessModels(objs);
 

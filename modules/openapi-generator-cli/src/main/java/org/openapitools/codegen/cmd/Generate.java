@@ -333,6 +333,9 @@ public class Generate extends OpenApiGeneratorCommand {
 
     @Override
     public void execute() {
+        // too large yaml for netbox API.
+        System.setProperty("maxYamlCodePoints", "99999999");
+
         if (StringUtils.isNotBlank(inputSpecRootDirectory)) {
             spec = new MergedSpecBuilder(inputSpecRootDirectory, StringUtils.isBlank(mergedFileName) ? "_merged_spec" : mergedFileName)
                 .buildMergedSpec();

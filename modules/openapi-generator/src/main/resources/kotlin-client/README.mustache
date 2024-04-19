@@ -21,37 +21,23 @@ For more information, please visit [{{{infoUrl}}}]({{{infoUrl}}})
 ## Requires
 
 {{#jvm}}
+* Java 21
 * Kotlin 1.7.21
-* Gradle 7.5
+* Maven
 {{/jvm}}
 {{#multiplatform}}
 * Kotlin 1.5.10
 {{/multiplatform}}
 
 ## Build
-
-{{#jvm}}
-First, create the gradle wrapper script:
-
-```
-gradle wrapper
-```
-
-Then, run:
-
-{{/jvm}}
-```
-./gradlew check assemble
-```
-
-This runs all tests and packages the library.
+Use maven build system. You need tsm-commons dependency.
 
 ## Features/Implementation Notes
 
 * Supports JSON inputs/outputs, File inputs, and Form inputs.
 * Supports collection formats for query parameters: csv, tsv, ssv, pipes.
 * Some Kotlin and Java types are fully qualified to avoid conflicts with types defined in OpenAPI definitions.
-{{#jvm}}* Implementation of ApiClient is intended to reduce method counts, specifically to benefit Android targets.{{/jvm}}
+* All API's are designed to be available in tSM Expression Language (SpEL) for use in the tSM platform.
 
 {{#generateApiDocs}}
 <a id="documentation-for-api-endpoints"></a>

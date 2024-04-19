@@ -822,6 +822,7 @@ public class DefaultCodegen implements CodegenConfig {
             if (Boolean.TRUE.equals(cm.isEnum) && cm.allowableValues != null) {
                 Map<String, Object> allowableValues = cm.allowableValues;
                 List<Object> values = (List<Object>) allowableValues.get("values");
+
                 List<Map<String, Object>> enumVars = buildEnumVars(values, cm.dataType);
                 postProcessEnumVars(enumVars);
                 // if "x-enum-varnames" or "x-enum-descriptions" defined, update varnames
@@ -6823,6 +6824,8 @@ public class DefaultCodegen implements CodegenConfig {
             }
         });
         Collections.reverse(enumVars);
+
+        enumVars.removeIf(v -> v.get("name") == null || v.get("name").toString().isBlank());
     }
 
     private String getUniqueEnumName(String name, List<Map<String, Object>> enumVars) {
@@ -8551,7 +8554,7 @@ public class DefaultCodegen implements CodegenConfig {
         // Also, adds back non constant params to allParams.
         for (CodegenParameter p : copy) {
             if (p.isEnum && p.required && p._enum != null && p._enum.size() == 1) {
-                // Add to constantParams for use in the code generation templates. 
+                // Add to constantParams for use in the code generation templates.
                 operation.constantParams.add(p);
                 if (p.isQueryParam) {
                     operation.queryParams.removeIf(param -> param.baseName.equals(p.baseName));

@@ -57,12 +57,15 @@ public abstract class AbstractKotlinCodegen extends DefaultCodegen implements Co
 
     protected String artifactId;
     protected String artifactVersion = "1.0.0";
-    protected String groupId = "org.openapitools";
-    protected String packageName = "org.openapitools";
+    protected String groupId = "cz.datalite.tsm.connector";
+    protected String packageName = "cz.datalite.tsm.connector";
     protected String apiSuffix = "Api";
 
-    protected String sourceFolder = "src/main/kotlin";
-    protected String testFolder = "src/test/kotlin";
+    // in tSM we mix Java and Kotlin sources
+//    protected String sourceFolder = "src/main/kotlin";
+//    protected String testFolder = "src/test/kotlin";
+    protected String sourceFolder = "src/main/java";
+    protected String testFolder = "src/test/java";
     protected String resourcesFolder = "src/main/resources";
 
     protected String apiDocPath = "docs/";
@@ -250,6 +253,7 @@ public abstract class AbstractKotlinCodegen extends DefaultCodegen implements Co
         cliOptions.clear();
         addOption(CodegenConstants.SOURCE_FOLDER, CodegenConstants.SOURCE_FOLDER_DESC, sourceFolder);
         addOption(CodegenConstants.PACKAGE_NAME, "Generated artifact package name.", packageName);
+        addOption(CodegenConstants.API_NAME_PREFIX, CodegenConstants.API_NAME_PREFIX_DESC, apiNamePrefix);
         addOption(CodegenConstants.API_SUFFIX, CodegenConstants.API_SUFFIX_DESC, apiSuffix);
         addOption(CodegenConstants.GROUP_ID, "Generated artifact package's organization (i.e. maven groupId).", groupId);
         addOption(CodegenConstants.ARTIFACT_ID, "Generated artifact id (name of jar).", artifactId);
@@ -459,8 +463,11 @@ public abstract class AbstractKotlinCodegen extends DefaultCodegen implements Co
 
         if (additionalProperties.containsKey(CodegenConstants.ARTIFACT_ID)) {
             this.setArtifactId((String) additionalProperties.get(CodegenConstants.ARTIFACT_ID));
+        } else if (additionalProperties.containsKey(CodegenConstants.API_NAME)) {
+            this.setArtifactId(additionalProperties.get(CodegenConstants.API_NAME) + "-client");
+            additionalProperties.put(CodegenConstants.ARTIFACT_ID, additionalProperties.get(CodegenConstants.API_NAME) + "-client");
         } else {
-            additionalProperties.put(CodegenConstants.ARTIFACT_ID, artifactId);
+                additionalProperties.put(CodegenConstants.ARTIFACT_ID, artifactId);
         }
 
         if (additionalProperties.containsKey(CodegenConstants.GROUP_ID)) {
@@ -654,7 +661,7 @@ public abstract class AbstractKotlinCodegen extends DefaultCodegen implements Co
         if (name.length() == 0) {
             return "DefaultApi";
         }
-        return (this.apiSuffix.isEmpty() ? camelize(name) : camelize(name) + this.apiSuffix);
+        return this.apiNamePrefix + (this.apiSuffix.isEmpty() ? camelize(name) : camelize(name) + this.apiSuffix);
     }
 
     /**
