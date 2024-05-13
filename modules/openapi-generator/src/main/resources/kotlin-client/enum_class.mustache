@@ -8,6 +8,7 @@ import com.squareup.moshi.JsonClass
 {{/moshi}}
 {{#jackson}}
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonValue
 {{/jackson}}
 {{#kotlinx_serialization}}
 import kotlinx.serialization.SerialName
@@ -36,7 +37,7 @@ import kotlinx.serialization.*
 @JsonClass(generateAdapter = false)
 {{/moshi}}
 {{/multiplatform}}
-{{#nonPublicApi}}internal {{/nonPublicApi}}enum class {{classname}}(val value: {{{dataType}}}) {
+{{#nonPublicApi}}internal {{/nonPublicApi}}enum class {{classname}}(@JsonValue val value: {{{dataType}}}) {
 {{#allowableValues}}{{#enumVars}}
     {{^multiplatform}}
     {{#moshi}}

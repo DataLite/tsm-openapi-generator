@@ -219,8 +219,8 @@ public abstract class AbstractKotlinCodegen extends DefaultCodegen implements Co
         typeMapping.put("ByteArray", "kotlin.ByteArray");
         typeMapping.put("number", "java.math.BigDecimal");
         typeMapping.put("decimal", "java.math.BigDecimal");
-        typeMapping.put("date-time", "java.time.OffsetDateTime");
-        typeMapping.put("date", "java.time.LocalDate");
+        typeMapping.put("date-time", "java.util.Date");
+        typeMapping.put("date", "java.util.Date");
         typeMapping.put("file", "java.io.File");
         typeMapping.put("array", "kotlin.Array");
         typeMapping.put("list", "kotlin.collections.List");
@@ -228,8 +228,8 @@ public abstract class AbstractKotlinCodegen extends DefaultCodegen implements Co
         typeMapping.put("map", "kotlin.collections.Map");
         typeMapping.put("object", "kotlin.Any");
         typeMapping.put("binary", "kotlin.ByteArray");
-        typeMapping.put("Date", "java.time.LocalDate");
-        typeMapping.put("DateTime", "java.time.OffsetDateTime");
+        typeMapping.put("Date", "java.util.Date");
+        typeMapping.put("DateTime", "java.util.Date");
         typeMapping.put("AnyType", "kotlin.Any");
 
         instantiationTypes.put("array", "kotlin.collections.ArrayList");
@@ -241,9 +241,9 @@ public abstract class AbstractKotlinCodegen extends DefaultCodegen implements Co
         importMapping.put("UUID", "java.util.UUID");
         importMapping.put("URI", "java.net.URI");
         importMapping.put("File", "java.io.File");
-        importMapping.put("Date", "java.time.LocalDate");
+        importMapping.put("Date", "java.util.Date");
         importMapping.put("Timestamp", "java.sql.Timestamp");
-        importMapping.put("DateTime", "java.time.OffsetDateTime");
+        importMapping.put("DateTime", "java.util.Date");
         importMapping.put("LocalDateTime", "java.time.LocalDateTime");
         importMapping.put("LocalDate", "java.time.LocalDate");
         importMapping.put("LocalTime", "java.time.LocalTime");

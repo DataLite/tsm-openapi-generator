@@ -3,13 +3,13 @@ package {{packageName}}
 import cz.datalite.tsm.commons.client.AbstractRestClient
 import cz.datalite.tsm.commons.client.AbstractRestClientProperties
 import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.context.annotation.Configuration
 import org.springframework.stereotype.Component
 
 
-@EnableConfigurationProperties({{apiNamePrefix}}Configuration::class)
+@Configuration
 @ConfigurationProperties(prefix = "tsm.connector.rest.{{apiName}}")
-class {{apiNamePrefix}}Configuration(url: String) : AbstractRestClientProperties(url)
+class {{apiNamePrefix}}Configuration : AbstractRestClientProperties()
 
 @Component
 class {{apiNamePrefix}}RestClient({{apiName}}Configuration: {{apiNamePrefix}}Configuration)
